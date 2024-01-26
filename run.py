@@ -15,7 +15,6 @@ import numpy as np
 def preprocess(tweet_string):
     # clean the data and tokenize it
     features = []
-    tweet_string = str(tweet_string)
 
     # normalizing
     tweet_string = tweet_string.lower()
@@ -49,7 +48,7 @@ def load_data(data_path):
         next(csvFile)
         for lines in csvFile:
             tweet = preprocess(str(lines[2]))
-            data.append((tweet, int(lines[3])))
+            data.append((tweet, lines[4]))
     return data
 
 
