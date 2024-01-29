@@ -10,9 +10,10 @@ class NaiveBayesClassifier:
         # class_counts --> number of instances of each class
         # vocab --> all unique words  
         self.classes = classes
-        self.class_word_counts = {word: {'positive': 0, 'negative': 0, 'neutral': 0} for word in set()}
-        # lambda_pos -> pos/neg, lambda_neg -> neg/neut, lambda_neut -> neut/pos
-        self.lambda_table = {word: {'positive': 0, 'negative': 0, 'neutral': 0, 'lambda_pos': 0, 'lambda_neg': 0, 'lambda_neut': 0} for word in set()}
+        self.class_word_counts = {}
+        self.class_word_likelihood = {}
+        self.prior = {}
+        self.general_count = 0
         self.class_counts = {'positive': 0, 'negative': 0, 'neutral': 0}
         self.vocab = set()
 
@@ -22,38 +23,44 @@ class NaiveBayesClassifier:
         # the first index of the tuple is a list of words and the second index is the label(positive, negative, or neutral)
 
         for features, label in data:
+            self.class_counts[label] += 1
             for word in features:
-                self.class_counts[label] += 1
                 self.vocab.add(word)
-                for c in self.classes:
-                    self.class_word_counts[word][c] += 1
+                if word not in self.class_word_counts:
+                    self.class_word_counts[word] = {'positive': 0, 'negative': 0, 'neutral': 0}
+                self.class_word_counts[word][label] += 1
 
         for word in self.vocab:
+            self.class_word_likelihood[word] = {'positive': 0, 'negative': 0, 'neutral': 0}
             for c in self.classes:
-                self.lambda_table[word][c] = self.calculate_likelihood(word, c)
-
-            self.lambda_table[word]['lambda_pos'] = math.log(self.lambda_table[word]['positive']/self.lambda_table[word]['negative'])
-            self.lambda_table[word]['lambda_neg'] = math.log(self.lambda_table[word]['negative']/self.lambda_table[word]['neutral'])
-            self.lambda_table[word]['lambda_neut'] = math.log(self.lambda_table[word]['neutral']/self.lambda_table[word]['positive'])
+                self.class_word_likelihood[word][c] = self.calculate_likelihood(word, c)
+                
+        self.general_count = sum(self.class_counts.values())
+        self.calculate_prior()
 
     def calculate_prior(self):
         # calculate log prior
-        # you can add some attributes to this method
-  
-        # Your Code
-        return None 
+        for c in self.classes:
+            self.prior[c] = math.log(self.class_counts[c]/self.general_count)
 
     def calculate_likelihood(self, word, label):
         # calculate likelihhood: P(word | label)
-        # return the corresponding value
-
-        return (self.class_word_counts[word][label] + 1) / (self.class_counts[label] + len(self.vocab))
+        word_count = self.class_word_counts[word][label] if word in self.vocab else 0
+        return math.log((word_count + 1) / (self.class_counts[label] + len(self.vocab)))
 
     def classify(self, features):
         # predict the class
-        # inputs: features(list) --> words of a tweet 
-        best_class = None 
-
-        # Your Code
+        best_class = None
+        class_vals = {}
+        for c in self.classes:
+            class_vals[c] = 0
+            for word in features:
+                if word in self.vocab:
+                    class_vals[c] += self.class_word_likelihood[word][c]
+                else:
+                    class_vals[c] += self.calculate_likelihood(word, c)
+            class_vals[c] += self.prior[c]
+        
+        best_class = max(class_vals, key=class_vals.get)
         return best_class
     
